@@ -11,7 +11,7 @@ the server listening on the port crashes.
 ``` js
 var party = require('http-party');
 
-part('./PORT', // './PORT' is the port file the servers will use to coordinate
+party('./PORT', // './PORT' is the port file the servers will use to coordinate
 	function onserver(server) {
 		server.on('request', function(request, response) {
 			response.end('hello world from '+pid);
