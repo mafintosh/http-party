@@ -2,5 +2,9 @@
   "name": "http-party",
   "version": "0.0.0",
   "description": "Allows you to run multiple http servers that share a port file and does automatic failover if the server listening on the port crashes",
-  "repository": "mafintosh/http-party"
+  "repository": "mafintosh/http-party",
+  "dependencies": {
+    "freeport": "^1.0.2",
+    "once": "^1.3.0"
+  }
 }
