@@ -11,7 +11,7 @@ the server listening on the port crashes.
 ``` js
 var party = require('http-party');
 
-party('./PORT', // './PORT' is the port file the servers will use to coordinate
+party('./PORT', // './PORT' is the port file the servers will use to coordinate.
 	function onserver(server) {
 		server.on('request', function(request, response) {
 			response.end('hello world from '+pid);
@@ -23,6 +23,7 @@ party('./PORT', // './PORT' is the port file the servers will use to coordinate
 );
 ```
 
+The PORT file defaults to `cwd/PORT`.
 Try running the above example in a folder and spawn multiple processes.
 
 ```
@@ -47,7 +48,7 @@ kill PID
 ```
 
 If you curl the same url again one of the other processes will be listening instead!
-You can always cat the `PORT` file to figure out which PORT is being used.
+You can always cat the `PORT` file to figure out which port is being used.
 Also since we use a regular file instead of unix sockets this should also work on windows!
 
 ## License

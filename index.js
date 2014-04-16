@@ -27,6 +27,9 @@ var readPort = function(path, cb) {
 };
 
 module.exports = function(path, onserver, ready) {
+	if (typeof path === 'function') return module.exports(null, path, onserver);
+	if (!path) path = 'PORT';
+
 	var onping = function(response) {
 		setTimeout(function() {
 			response.end();
