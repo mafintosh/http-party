@@ -14,13 +14,13 @@ var writePort = function(path, port, cb) {
 	});
 };
 
-var getPort = function(path, cb) {
+var readPort = function(path, cb) {
 	fs.readFile(path, 'utf-8', function(err, port) {
 		if (port) return cb(null, parseInt(port));
 		freeport(function(err, port) {
 			if (err) return cb(err);
 			writePort(path, port, function() {
-				getPort(path, cb);
+				readPort(path, cb);
 			});
 		});
 	});
@@ -46,7 +46,7 @@ module.exports = function(path, onserver, ready) {
 	ready = once(ready || function() {});
 
 	var kick = function(tries) {
-		getPort(path, function(err, port) {
+		readPort(path, function(err, port) {
 			if (err) return ready(err);
 
 			var ping = function() {
