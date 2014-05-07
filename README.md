@@ -6,6 +6,8 @@ the server listening on the port crashes.
 
 	npm install http-party
 
+![dat](http://img.shields.io/badge/Development%20sponsored%20by-dat-green.svg?style=flat)
+
 ## Usage
 
 ``` js
