@@ -15,6 +15,7 @@ var writePort = function(path, port, cb) {
 };
 
 var readPort = function(path, cb) {
+  if (typeof path === 'number') return cb(null, path)
 	fs.readFile(path, 'utf-8', function(err, port) {
 		if (port) return cb(null, parseInt(port));
 		freeport(function(err, port) {
@@ -26,8 +27,13 @@ var readPort = function(path, cb) {
 	});
 };
 
+var unlink = function(port, cb) {
+  if (typeof port === 'number') return cb();
+  fs.unlink(port, cb);
+};
+
 module.exports = function(path, onserver, ready) {
-	if (typeof path === 'function') return module.exports(null, path, onserver);
+	if (typeof path === 'function') return module.exports(null, null, path, opts);
 	if (!path) path = 'PORT';
 
 	var onping = function(response) {
@@ -93,7 +99,7 @@ module.exports = function(path, onserver, ready) {
 
 				req.on('error', function() {
 					if (tries < 3) return kick(tries++);
-					fs.unlink(path, function(err) {
+					unlink(path, function(err) {
 						if (err) return ready(err);
 						kick(0);
 					});
