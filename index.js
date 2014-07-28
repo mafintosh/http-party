@@ -1,7 +1,9 @@
 var fs = require('fs')
 var freeport = require('freeport')
+var crypto = require('crypto')
 var http = require('http')
 var once = require('once')
+var resolve = require('path').resolve
 
 var noop = function() {}
 
@@ -30,20 +32,57 @@ var readPort = function(path, cb) {
 }
 
 var unlink = function(port, cb) {
-  if (typeof port === 'number') return cb()
+  if (typeof port === 'number') return cb(new Error('Cannot unlink port'))
   fs.unlink(port, cb)
 }
 
+var conflict = function(message) {
+  var err = new Error(message)
+  err.conflict = true
+  return err
+}
+
 module.exports = function(path, onserver, ready) {
-  if (typeof path === 'function') return module.exports(null, null, path, opts)
+  if (typeof path === 'function') return module.exports(null, path, onserver)
   if (!path) path = 'PORT'
 
+  var handshake = crypto.createHash('md5').update(typeof path === 'string' ? resolve(process.cwd(), path) : path.toString()).digest('hex')
   var server = http.createServer()
   var emit = server.emit
 
+  var visit = function(url, timeout, cb) {
+    cb = once(cb)
+
+    var req = http.get(url, function(res) {
+      if (res.headers['content-type'] !== 'application/x-http-party-handshake') {
+        req.destroy()
+        cb(conflict('Invalid handshake'))
+        return
+      }
+
+      var buf = ''
+      res.setEncoding('utf-8')
+      res.on('data', function(data) {
+        buf += data
+      })
+      res.on('end', function() {
+        cb(buf !== handshake && conflict('Handshake mismatch'))
+      })
+    })
+
+    req.setTimeout(timeout, function() {
+      req.destroy()
+    })
+
+    req.on('error', cb)
+    req.on('close', function() {
+      cb(new Error('Request closed prematurely'))
+    })
+  }
+
   var onpingrequest = function(req, res) {
     var end = function() {
-      res.end()
+      ontestrequest(req, res)
     }
 
     var onclose = function() {
@@ -55,13 +94,15 @@ module.exports = function(path, onserver, ready) {
   }
 
   var ontestrequest = function(req, res) {
-    res.end()
+    res.setHeader('Content-Type', 'application/x-http-party-handshake')
+    res.setHeader('Content-Length', Buffer.byteLength(handshake))
+    res.end(handshake)
   }
 
   server.emit = function(name, req, res) {
     if (name !== 'request') return emit.apply(server, arguments)
-    if (req.url === '/__test__') return ontestrequest(req, res)
-    if (req.url === '/__ping__') return onpingrequest(req, res)
+    if (req.url === '/__http_party_test__') return ontestrequest(req, res)
+    if (req.url === '/__http_party_ping__') return onpingrequest(req, res)
     return emit.apply(server, arguments)
   }
 
@@ -73,26 +114,16 @@ module.exports = function(path, onserver, ready) {
     readPort(path, function(err, port) {
       if (err) return ready(err)
 
-      var onpingresponse = function(res) {
-        res.resume()
-        res.on('end', ping)
-      }
-
-      var ping = function() {
-        var req = http.get('http://127.0.0.1:'+port+'/__ping__', onpingresponse)
-
-        req.setTimeout(2*60000, function() {
-          req.destroy()
-        })
-
-        req.on('error', function() {
-          setTimeout(kick, 50)
-        })
-      }
-
       var clean = function() {
         server.removeListener('error', onerror)
         server.removeListener('listening', onlisten)
+      }
+
+      var ping = function() {
+        visit('http://127.0.0.1:'+port+'/__http_party_ping__', 2*60*1000, function(err) {
+          if (err) return setTimeout(kick, 50)
+          ping()
+        })
       }
 
       var onlisten = function() {
@@ -102,28 +133,25 @@ module.exports = function(path, onserver, ready) {
       }
 
       var onerror = function() {
-        if (err && err.code !== 'EADDRINUSE') return
+        if (err && err.code !== 'EADDRINUSE') {
+          if (server.listeners('error').length === 1) throw err
+          return
+        }
 
         clean()
+        visit('http://127.0.0.1:'+port+'/__http_party_test__', 2000, function(err) {
+          if (err) {
+            console.log(err, tries)
+            if (tries < 3 && !err.conflict) return kick(++tries)
+            unlink(path, function(err) {
+              if (err) return ready(err)
+              kick(0)
+            })
+            return
+          }
 
-        var req = http.get('http://127.0.0.1:'+port+'/__test__', function(res) {
-          res.resume()
-          res.on('end', function() {
-            ready(null, port)
-            ping()
-          })
-        })
-
-        req.setTimeout(2000, function() {
-          req.destroy()
-        })
-
-        req.on('error', function() {
-          if (tries < 3) return kick(tries++)
-          unlink(path, function(err) {
-            if (err) return ready(err)
-            kick(0)
-          })
+          ready(null, port)
+          ping()
         })
       }
 
