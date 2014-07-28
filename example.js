@@ -1,6 +1,6 @@
 var party = require('./');
 
-party(10000,
+party('PORT',
 	function(server) {
 		console.log('yo im a server now')
 		server.on('request', function(request, response) {
