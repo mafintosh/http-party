@@ -4,8 +4,11 @@ Similar in scope to [level-party](https://github.com/substack/level-party) but f
 Allows you to run multiple http servers that share a port file and does automatic failover if
 the server listening on the port crashes.
 
-	npm install http-party
+```
+npm install http-party
+```
 
+[![build status](http://img.shields.io/travis/mafintosh/http-party.svg?style=flat)](http://travis-ci.org/mafintosh/http-party)
 ![dat](http://img.shields.io/badge/Development%20sponsored%20by-dat-green.svg?style=flat)
 
 ## Usage
