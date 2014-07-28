@@ -43,11 +43,11 @@ var conflict = function(message) {
 }
 
 module.exports = function(path, onserver, ready) {
-  if (typeof path === 'function') return module.exports(null, path, onserver)
+  if (typeof path === 'function' || typeof path === 'object') return module.exports(null, path, onserver)
   if (!path) path = 'PORT'
 
   var handshake = crypto.createHash('md5').update(typeof path === 'string' ? resolve(process.cwd(), path) : path.toString()).digest('hex')
-  var server = http.createServer()
+  var server = typeof onserver === 'object' ? onserver : http.createServer()
   var emit = server.emit
 
   var visit = function(url, timeout, cb) {
@@ -128,7 +128,7 @@ module.exports = function(path, onserver, ready) {
 
       var onlisten = function() {
         clean()
-        onserver(server, port)
+        if (typeof onserver === 'function') onserver(server, port)
         ready(null, port)
       }
 

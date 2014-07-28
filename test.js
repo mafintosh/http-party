@@ -1,6 +1,7 @@
 var tape = require('tape')
 var connections = require('connections')
 var freeport = require('freeport')
+var http = require('http')
 var os = require('os')
 var path = require('path')
 var party = require('./')
@@ -95,4 +96,24 @@ tape('listen on explicit port 5 times', function(t) {
       )
     }
   })
+})
+
+tape('listen on 1 (server)', function(t) {
+  t.plan(3)
+
+  var server = http.createServer()
+  var PORT = path.join(os.tmpDir(), Date.now()+'-'+process.pid+'-1')
+
+  server.on('listening', function() {
+    t.ok(true, 'server is listening')
+    server.close()
+  })
+
+  party(PORT,
+    server,
+    function ready(err, port) {
+      t.notOk(err, 'no err')
+      t.ok(port, 'has port')
+    }
+  )
 })
